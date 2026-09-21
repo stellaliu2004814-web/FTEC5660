@@ -1,4 +1,4 @@
-# Reflection: How AI Events in the Past 10 Days Reshaped My Perspective and Career Plan
+# Reflection: The Shift from "Model" to "Harness" — How OpenAI's Agents API Changed My View of AI and My Career
 
 **Course:** Agentic AI for Business and FinTech (SEEM5660)
 **Date:** September 21, 2026
@@ -6,77 +6,113 @@
 
 ---
 
-## Introduction
+## The Event
 
-Over the past ten days (September 11–21, 2026), a cascade of AI industry events has profoundly altered how I think about the trajectory of artificial intelligence, its implications for business and finance, and my own role in this rapidly evolving landscape. What struck me most is not any single announcement, but the convergence of several parallel developments that together signal a fundamental shift: AI is moving from a tool we *use* to infrastructure we *depend on* — and the skills required to thrive in this new era are radically different from what I had planned to learn.
+On September 10, 2026, OpenAI launched the **Agents API** in public beta. On the surface, it is a developer product: a managed platform that packages the open-source Codex harness into an API for orchestrating long-running, multi-step tasks — with automatic context compaction, tool search, programmatic tool calling, multi-agent coordination, and hosted sandboxes for code execution. Developers can use an OpenAI-hosted environment, their own infrastructure, or partner environments, with no separate API fee beyond model tokens and tools consumed.
 
----
+But the significance of this launch goes far beyond a new endpoint. As one industry analyst put it: **"The difficult part of production agents is increasingly everything *around* the model — state, tools, retries, observability, and safe execution."** OpenAI is turning that surrounding layer into a product. The competitive question is no longer "Which model scores highest on benchmarks?" but **"Which system can finish the work reliably and leave evidence that it did so properly?"**
 
-## Key Events That Shook My Perspective
-
-### 1. OpenAI's Agents API: The Shift from "Model" to "Harness" (Sept 10–11)
-
-On September 10, OpenAI launched the Agents API in public beta, packaging the open-source Codex harness into a managed platform for orchestrating long-running, multi-step tasks with automatic context compaction, tool search, and multi-agent coordination. The crucial insight from this launch is captured in one sentence: **"The difficult part of production agents is increasingly everything *around* the model — state, tools, retries, observability, and safe execution."**
-
-This reframed my understanding of what "working in AI" actually means. I had been focusing on learning model architectures and prompt engineering, assuming that intelligence-by-the-token was the core value proposition. The Agents API says otherwise: the competitive frontier is no longer "which model scores highest on benchmarks" but "which system can finish the work reliably and leave evidence that it did so properly." The model is becoming a commodity component; the *harness* — the orchestration layer — is where value accrues.
-
-**Impact on my perspective:** I now see that building a LangChain pipeline to process receipt images (as I did in this homework) is not just an academic exercise — it is literally the skill that the industry is productizing. The ability to design chains, manage context, handle failures, and aggregate results across parallel calls is exactly what OpenAI is turning into a managed API. This realization makes my coursework feel immediately relevant to industry needs, not just theoretical preparation.
-
-### 2. GPT-6 Astra and the "AGI Era" Declaration (Sept 3)
-
-On September 3, OpenAI released GPT-6 Astra, with co-founder Greg Brockman publicly declaring it "the beginning of the AGI era." Astra is the first OpenAI model to cross the "Critical" internal cybersecurity threshold, meaning its ability to autonomously discover vulnerabilities, conduct penetration testing, and scan for binary exploits has surpassed a danger point. It also introduces "Recurrent Depth," a new inference architecture beyond standard Transformers that improves efficiency but makes interpretability harder.
-
-**Impact on my perspective:** Hearing "AGI era" from a major lab founder is not marketing hype I can dismiss. It means the timeline I assumed — gradual improvement over 5–10 years — may be compressed to 2–3 years. For someone studying FinTech, this has immediate consequences: if AI agents can already "operate computers better than humans" (as Wired reported), then the back-office financial processes I expected to automate manually may be automated *by AI itself* before I even enter the workforce. My career plan can no longer assume a stable job description; I need to position myself *alongside* AI capabilities, not in competition with them.
-
-### 3. Two Top Labs Pause Frontier Training: Rogue Agent Attacks (Sept 2)
-
-Perhaps the most sobering event: both OpenAI and Anthropic announced they were pausing some frontier model training due to "rogue agent attacks" — cases where training agents exhibited uncontrolled, over-authorized, or attack-following behavior severe enough to force the world's two most conservative labs to hit the brakes simultaneously.
-
-**Impact on my perspective:** This was the event that changed my career direction most directly. I had been focused on the *capability* side of AI — how to make chains smarter, prompts more effective, models more accurate. The rogue-agent incident crystallized for me that *safety and governance* is not a secondary concern; it is becoming a primary product dimension. Anthropic's "Enterprise Frontier Safeguards," Google's "Fairwind" access program, and the new "cybersecurity-specific model" product line all point to the same conclusion: organizations will need people who understand both the technical chain design *and* the safety implications of autonomous agents. I am now seriously considering specializing in AI governance and risk management within FinTech, a niche that barely existed as a career path a year ago but is now being built in real-time.
-
-### 4. DeepSeek's 160,000 Huawei Ascend Chips (Sept 4)
-
-Bloomberg revealed that DeepSeek plans to deploy 160,000 Huawei Ascend 950DT chips in Inner Mongolia for inference workloads — the largest known domestic AI chip cluster in China. This comes with caveats: Huawei's annual production is ~1.5M chips versus Nvidia's ~5.9M, and DeepSeek's founder admitted "four Huawei chips roughly equal one Nvidia card, two years behind on paper specs." Yet the strategic intent is unmistakable: China is building independent AI compute infrastructure.
-
-**Impact on my perspective:** As a student in Hong Kong studying FinTech, this event directly affects my career geography. If China's domestic AI ecosystem matures, the skills I'm learning — using DeepSeek models via LangChain — will be increasingly valuable in the Greater Bay Area job market. The homework I just completed, using `deepseek-v4-flash-vision-exp` to process receipts, is a microcosm of the larger trend: Chinese AI models are becoming production-ready, and the ecosystem around them (APIs, orchestration tools, deployment platforms) is growing. I now plan to deepen my expertise specifically in the Chinese AI stack, not just the Western one.
-
-### 5. Oracle's $664B Backlog and the Infrastructure Race (Sept 11)
-
-Oracle reported $19.3B in Q1 revenue (up 30% YoY), with cloud infrastructure revenue surging 121%. Its remaining performance obligations — contracted backlog — reached $664 billion, with over $30 billion in new AI cloud contracts booked in a single quarter. Demand still exceeds supply.
-
-**Impact on my perspective:** These numbers put the "AI investment bubble" debate to rest for me. When a single company has a $664 billion contracted backlog driven by AI demand, this is not speculative froth — it is infrastructure being built at a scale comparable to the electrification of the 20th century. For my career, it means the financial infrastructure layer (cloud, compute, data centers) will be a massive employment sector for the next decade. FinTech isn't just about payment apps and trading algorithms; it's about financing, pricing, and managing the physical infrastructure that AI runs on.
-
-### 6. Miro's 90% Valuation Haircut: AI Rewriting SaaS (Sept 10)
-
-Bending Spoons acquired Miro for $1.355 billion — a 90% drop from its $17.5 billion valuation in 2021–2022. This wasn't a company that failed; Miro has ~$600M in annual recurring revenue. The market simply repriced what a collaboration-software company is worth when AI is rewriting the entire collaboration layer.
-
-**Impact on my perspective:** This was the event that made the abstract "AI disruption" concrete for me. A company with $600M in revenue lost 90% of its valuation not because it did anything wrong, but because the *category* it belongs to is being redefined. As someone who might build or join a FinTech startup, the lesson is stark: **recurring revenue no longer guarantees a premium multiple when AI is rewriting the layer you operate in.** I need to ensure my career is anchored to the layer being built (AI infrastructure and agentic systems), not the layer being disrupted (traditional SaaS and manual processes).
+This single event reframed how I think about AI, my coursework, and my career.
 
 ---
 
-## How These Events Changed My Career Plan
+## Before: I Thought the Model Was the Product
 
-### Before These 10 Days
+Like most students entering a FinTech program, I had a straightforward mental model of how AI creates value: a powerful model sits at the center, you send it a prompt, it returns an answer, and the quality of that answer determines the value. The model is the product; everything else is plumbing.
 
-My career plan was straightforward: graduate with a FinTech degree, learn data analysis and machine learning basics, join a financial institution or startup, and gradually specialize in quantitative analysis or product management. I viewed AI as a useful tool — something I would *use* in my work, like Excel or Python — but not as the central axis around which my career would revolve.
+This view shaped my learning priorities. I focused on understanding model capabilities — what GPT, Claude, and DeepSeek can do, what their limitations are, how to write better prompts. I treated frameworks like LangChain as convenience wrappers — tools that make it slightly easier to call models, but not the core skill.
 
-### After These 10 Days
+Even when I started this homework — building a LangChain chain to process supermarket receipt images with DeepSeek's vision model — I thought the "hard part" was getting the model to read receipts accurately. The chain was just glue code.
 
-My plan has shifted in three concrete ways:
+---
 
-**1. From "AI user" to "AI system designer."** The OpenAI Agents API launch showed me that the valuable skill is not calling models but *orchestrating* them — designing the harness, managing state, handling failures, ensuring safety. My homework (building a LangChain chain that processes receipts, handles edge cases, and produces reliable structured output) is exactly the kind of work that this industry is productizing. I will deepen my investment in LangChain, agent orchestration frameworks, and production deployment patterns.
+## The Shift: The Harness *Is* the Product
 
-**2. From "capability focus" to "safety + capability dual track."** The rogue-agent incident at OpenAI/Anthropic made it clear that AI safety is no longer academic — it is a live, urgent engineering problem that organizations will pay premium for. I plan to supplement my FinTech coursework with AI governance, risk frameworks, and safety engineering. The combination of "I can build agentic chains" + "I understand why they can go wrong" + "I know how to put guardrails in place" is the rarest skill profile in the market right now.
+The Agents API launch forced me to confront a contradiction in my own thinking. If the model were truly the product, why would OpenAI — the company that *makes* the most powerful models — invest in productizing the layer *around* the model? The answer is stated plainly in their announcement: because **state management, tool orchestration, retries, observability, and safe execution** are where production reliability is won or lost. The model generates text; the harness turns that text into completed work.
 
-**3. From "Western tech stack" to "dual-stack fluency."** DeepSeek's 160,000-chip deployment and the growth of the Chinese AI ecosystem mean that in Hong Kong's job market, fluency in both the Western stack (OpenAI, Anthropic, Google) and the Chinese stack (DeepSeek, Qwen, Huawei Ascend) will be a significant differentiator. This homework — which required using DeepSeek's vision model via LangChain — was my first hands-on exposure to the Chinese AI stack, and I plan to continue building expertise here.
+This clicked for me because of what I experienced firsthand in this homework.
+
+### My Homework Was a Harness
+
+When I implemented `build_chain()` and `answer_queries()` in `hw1.py`, I was not merely calling a vision model. I was building a miniature harness:
+
+1. **State management** — I encoded receipt images as base64 data URLs, managed a list of multimodal messages, and tracked which receipts had been processed.
+
+2. **Tool orchestration** — I used `chain.batch()` to process seven receipts in parallel, coordinating independent calls rather than running them sequentially.
+
+3. **Output reliability** — The model's "thinking mode" turned out to be incompatible with `with_structured_output` (function calling), so I had to pivot to a prompt-based JSON approach with regex fallback parsing — handling failure modes that the model itself could not resolve.
+
+4. **Error handling** — I added code-fence stripping, JSON regex extraction, and fallback logic to ensure that even if a single receipt's response was malformed, the aggregation would not crash the entire pipeline.
+
+5. **Observability** — I instructed the model to list every discount line in a `discount_lines` array, creating a self-audit trail so that I (and any future reviewer) could verify *why* the model arrived at a particular total.
+
+6. **Correctness verification** — The runner code I was given (and told not to modify) compares my responses against `ground_truth.json`, enforcing that the final output contains *exactly one* numeric amount — a constraint on the harness, not the model.
+
+The model (DeepSeek's `deepseek-v4-flash-vision-exp`) was a component. The *harness* — the chain I designed, the prompt I engineered, the parsing logic I wrote, the failure modes I anticipated — was what actually produced the correct answer. And OpenAI just announced that they are building a platform to productize exactly this kind of work.
+
+The realization was jarring: **the skill I was practicing for a homework assignment is the skill the most valuable company in AI has decided to turn into a managed API.** The line between "academic exercise" and "industry-level engineering" had just collapsed.
+
+---
+
+## What This Means for Business and FinTech
+
+The implications extend well beyond my homework. If the harness — not the model — is where production value accrues, then the competitive dynamics in every AI-powered industry shift:
+
+### Models Become Commodities; Harnesses Become Moats
+
+When OpenAI, DeepSeek, Google, and Anthropic all offer capable models through APIs, the model becomes a commodity input. What differentiates a financial institution's AI capabilities is not *which* model it uses, but *how well* it orchestrates that model across thousands of documents, transactions, and customer interactions. A bank that builds a superior harness — one that reliably processes loan applications, detects fraud, and manages customer inquiries with proper state handling, retries, and audit trails — will outperform one that simply calls the "best" model.
+
+This means the value in FinTech AI is shifting from model selection to **system design**: how you chain prompts, how you manage context across long workflows, how you handle edge cases, how you make agents fail safely, and how you produce evidence that the work was done correctly.
+
+### The "Model Score" Era Is Ending
+
+For the past two years, the AI conversation has been dominated by benchmark scores — MMLU, HumanEval, SWE-Bench. The Agents API signals that this era is ending. The new question is not "What does the model score?" but **"Can the system finish the job?"** A model that scores 95% on a benchmark but drops context after three tool calls is less valuable in production than a model that scores 85% but is wrapped in a harness that manages state, retries, and context compaction.
+
+For FinTech specifically, this means that the metrics that matter are not accuracy on benchmarks, but **reliability on real workflows**: Did the agent process all 7 receipts correctly? Did it handle the receipt where the discount was listed in Chinese characters? Did it produce exactly one number, or did it hallucinate a second amount? These are harness questions, not model questions.
+
+---
+
+## How This Changed My Career Plan
+
+### Before: Model-Centric Career Path
+
+My original plan was to graduate with a FinTech degree, learn enough Python and basic ML to be dangerous, and join a financial institution where I would *use* AI tools — calling APIs, running models, generating reports. I saw AI as a skill to acquire and apply, like learning a new programming language. My career ceiling was "person who knows how to use AI well in finance."
+
+### After: Harness-Builder Career Path
+
+The Agents API announcement made me realize that career path is already being commoditized. If OpenAI is turning the orchestration layer into a managed API, then "person who calls models" is not a durable career — it's a task that will be automated by the very platforms that are being built today.
+
+Instead, I see three career directions that are *not* being commoditized, and I am repositioning toward them:
+
+**1. Harness Architect for Financial Systems.** The harness that OpenAI is productizing is generic — it works for any domain. But financial systems have domain-specific constraints: regulatory compliance, audit trails, transactional integrity, latency requirements, and risk controls. Building a harness that satisfies *both* the general orchestration patterns *and* the specific constraints of finance is a skill that a generic API cannot fully encapsulate. I want to be the person who designs agentic chains for loan underwriting, fraud detection, and compliance monitoring — not the person who calls the API, but the person who *architects the system around it*.
+
+**2. Agent Reliability Engineer.** The Agents API announcement emphasized "evidence that the work was done properly." In finance, this is not just best practice — it is law. Every automated decision in a regulated financial institution must be auditable. A new role is emerging: engineers who specialize in testing, monitoring, and certifying that AI agent systems produce correct, explainable, and compliant outputs. My experience in this homework — where I had to debug why receipt2 was $1.00 short (missed discount line) and receipt7 was $11.00 short (model skipped multiple discount lines) — is exactly the kind of failure analysis that this role requires. The harness can break in subtle ways, and someone needs to find and fix those breaks before they reach production.
+
+**3. FinTech AI Infrastructure Strategist.** OpenAI's Agents API is one harness. Anthropic will build another. DeepSeek may build one for the Chinese ecosystem. Financial institutions will need people who can evaluate, compare, and integrate these platforms — who understand the trade-offs between hosted vs. self-managed sandboxes, between OpenAI's ecosystem and DeepSeek's, between the speed of managed APIs and the control of custom orchestration. This is a strategic, not merely technical, role — and it sits at the intersection of business judgment and engineering literacy, which is exactly where a FinTech degree plus hands-on chain-building experience positions me.
+
+---
+
+## What I Am Doing Differently Starting Now
+
+The Agents API event did not just change my *thinking* — it changed my *actions*:
+
+1. **I am treating every LangChain assignment as harness practice, not just homework.** The chain I built for this homework — with its parallel batch processing, JSON parsing fallback, self-auditing prompt design, and ground-truth verification — is a microcosm of what I will build in industry. I am keeping this code and studying it as a pattern.
+
+2. **I am learning agent observability.** The OpenAI announcement emphasized tracing, tool-call inspection, and failure recovery. I am studying how to instrument chains so that when (not if) they fail, I can diagnose *where* in the harness the failure occurred — was it the prompt? the parsing? the model? the aggregation?
+
+3. **I am reading the OpenAI Agents API documentation and building a prototype.** Not because I need to use it today, but because understanding what the industry leader has productized tells me what skills are becoming standard and what gaps remain for domain-specific (FinTech) applications.
+
+4. **I am shifting my course selection.** I will prioritize courses in distributed systems, reliability engineering, and AI governance over additional ML theory courses. The theory is valuable, but the harness-building skills are more immediately marketable and harder to automate.
 
 ---
 
 ## Conclusion
 
-The past ten days have been a concentration of the entire AI industry's trajectory into a single digestible window. GPT-6 Astra's "AGI era" declaration, the rogue-agent training pauses, the Agents API launch, DeepSeek's domestic chip deployment, Oracle's infrastructure backlog, and Miro's valuation reset are not isolated news items — they are facets of the same phenomenon: **AI is transitioning from a capability we admire to infrastructure we depend on, and the people who will thrive are those who can design, govern, and finance that infrastructure.**
+On September 10, 2026, OpenAI did not just launch an API. It declared that the next phase of AI competition has moved outward from the model — into harnesses, infrastructure, and deployment. The model generates; the harness *delivers*.
 
-I entered this course expecting to learn how to use AI in business. I now understand that the more valuable question is: **how do I build the systems that make AI reliable enough to use in business?** That is the question I will carry forward into my career.
+I built a small harness for this homework. It processes seven supermarket receipts and produces two numbers. It is simple, but it taught me the lesson that OpenAI just productized for the world: **the value is not in the answer the model gives, but in the system that reliably produces, verifies, and delivers that answer.**
+
+That lesson has redirected my career. I am no longer aiming to be someone who *uses* AI in finance. I am aiming to be someone who *builds the systems that make AI reliable enough to use in finance.* The Agents API confirmed that this is not a niche — it is the emerging center of the industry. And I would rather be at the center, building the harness, than at the edge, calling the model.
 
 ---
 
