@@ -55,32 +55,114 @@ def image_data_url(path: Path) -> str:
 def build_chain() -> Any:
     """Create and return your LangChain chain once.
 
-    Suggested imports:
-        from langchain_core.prompts import ChatPromptTemplate
-        from langchain_deepseek import ChatDeepSeek
-
-    Use the vision-capable DeepSeek Flash model named
-    ``deepseek-v4-flash-vision-exp``. The API key is loaded from .env.
+    Uses deepseek-v4-flash-vision-exp as the vision backbone model with
+    structured output (Pydantic) for reliable per-receipt field extraction.
     """
-    ### YOUR CODE HERE
-    return None
+    from langchain_deepseek import ChatDeepSeek
+    from pydantic import BaseModel, Field
+
+    class ReceiptData(BaseModel):
+        """Structured data extracted from a single supermarket receipt."""
+
+        amount_paid_after_rounding: float = Field(
+            description=(
+                "The final payment amount on the receipt AFTER rounding. "
+                "This is the amount actually paid via the payment method "
+                "(e.g., OCTOPUS, CASH, VISA, ALIPAY). Do NOT include ROUNDING."
+            )
+        )
+        subtotal: float = Field(
+            description=(
+                "The SUBTOTAL amount shown on the receipt (after all discounts "
+                "have been applied, but BEFORE any rounding adjustment)."
+            )
+        )
+        discount_total: float = Field(
+            description=(
+                "The sum of ALL discount/promotion/coupon/member/offer lines on "
+                "the receipt, expressed as a POSITIVE number. Include every "
+                "promotion, coupon, member discount, app discount, packaging "
+                "damage reduction, and percentage-off line. Do NOT include the "
+                "ROUNDING line here."
+            )
+        )
+
+    llm = ChatDeepSeek(
+        model="deepseek-v4-flash-vision-exp",
+        temperature=0,
+        max_retries=2,
+    )
+
+    # Wrap the LLM with structured output so each receipt returns a ReceiptData
+    structured_llm = llm.with_structured_output(ReceiptData)
+    return structured_llm
 
 
 def answer_queries(chain: Any, images: list[Path]) -> dict[str, Any]:
-    """Run your chain and return one response for each exact query string.
+    """Run the chain on all receipt images and return one response per query.
 
-    ``images`` contains every receipt in the selected folder. A valid return
-    value looks like:
+    For each receipt image we build a multimodal message (system prompt + text
+    instruction + base64 image) and run them all in parallel with chain.batch().
+    Then we aggregate the structured fields:
 
-        {QUERY_1: "HK$123.40", QUERY_2: "HK$150.00"}
-
-    Use the provided ``image_data_url(path)`` helper to put local images in
-    multimodal human messages. LangChain's ``batch`` method is one simple way
-    to process independent receipt-extraction prompts in parallel.
+        Query 1 (total spent)            = sum of amount_paid_after_rounding
+        Query 2 (without discount)       = sum of (subtotal + discount_total)
     """
-    ### YOUR CODE HERE
-    _ = (chain, images)
-    return {QUERY_1: DUMMY_RESPONSE, QUERY_2: DUMMY_RESPONSE}
+    from langchain_core.messages import HumanMessage, SystemMessage
+
+    system_prompt = (
+        "You are an expert at reading Hong Kong supermarket receipts. "
+        "Carefully examine the receipt image and extract the exact monetary "
+        "values requested. Pay close attention to:\n"
+        "- The final payment amount (after rounding), typically shown next to "
+        "  a payment method like OCTOPUS, CASH, VISA, CREDIT CARD, ALIPAY, "
+        "  etc.\n"
+        "- The SUBTOTAL line (after all discounts, before rounding).\n"
+        "- All discount/promotion/coupon/offer lines (as positive numbers).\n"
+        "Do NOT confuse rounding with discounts. Rounding is a small "
+        "adjustment (usually HK$0.01-HK$0.09) to make the total a round number."
+    )
+
+    human_prompt = (
+        "Extract the following three values from this Hong Kong supermarket "
+        "receipt image:\n"
+        "1. amount_paid_after_rounding: The final amount actually paid "
+        "(after any rounding adjustment). Look for the payment method line "
+        "(OCTOPUS, CASH, VISA, etc.).\n"
+        "2. subtotal: The SUBTOTAL amount (after discounts, before rounding).\n"
+        "3. discount_total: The sum of ALL discounts, promotions, coupons, "
+        "and offers (as a positive number). Do NOT include rounding.\n\n"
+        "Return ONLY the structured data. Do not include any extra text."
+    )
+
+    # Build one multimodal message per receipt image
+    messages_list: list[list[Any]] = []
+    for img_path in images:
+        data_url = image_data_url(img_path)
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(
+                content=[
+                    {"type": "text", "text": human_prompt},
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                ]
+            ),
+        ]
+        messages_list.append(messages)
+
+    # Batch-process all receipts in parallel
+    results = chain.batch(messages_list)
+
+    # Aggregate across all receipts
+    total_paid = sum(float(r.amount_paid_after_rounding) for r in results)
+    total_without_discount = sum(
+        float(r.subtotal) + float(r.discount_total) for r in results
+    )
+
+    return {
+        QUERY_1: f"HK${total_paid:.2f}",
+        QUERY_2: f"HK${total_without_discount:.2f}",
+    }
 
 
 # Everything below is provided runner/scoring code. No edits are needed.

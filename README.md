@@ -48,6 +48,71 @@ DeepSeek Flash model. JPEG, PNG, GIF, and WebP inputs are accepted by the
 homework runner.
 
 
-## Homework 1 solution: 
-> to students: please fill your solution description here.
+## Homework 1 solution:
+
+### Chain Design
+
+My solution uses a two-stage LangChain pipeline:
+
+1. **Per-receipt extraction (parallel)** — For each receipt image, a multimodal
+   message (system prompt + text instruction + base64-encoded image) is sent
+   to the vision-capable `deepseek-v4-flash-vision-exp` model wrapped with
+   `with_structured_output(ReceiptData)`. Each call returns a Pydantic object
+   with three fields:
+
+   - `amount_paid_after_rounding` — the final payment after rounding (e.g.,
+     the OCTOPUS / CASH / VISA line)
+   - `subtotal` — the SUBTOTAL line (after discounts, before rounding)
+   - `discount_total` — the sum of all discount / promotion / coupon / member /
+     app lines (as a positive number, excluding rounding)
+
+   All receipts are processed concurrently via `chain.batch()`.
+
+2. **Aggregation** — The structured fields are summed across every receipt:
+
+   - **Query 1** (total spent)            = Σ `amount_paid_after_rounding`
+   - **Query 2** (without discount)       = Σ (`subtotal` + `discount_total`)
+
+   Results are returned as a dict keyed by the exact query strings, formatted
+   as `"HK$xxxx.xx"` so the grader's regex picks up exactly one numeric value.
+
+### Chain Architecture Diagram
+
+```
+  receipt1.jpg ──┐
+  receipt2.jpg ──┤  ┌──────────────────────────────┐  ┌──────────────┐
+  receipt3.jpg ──┼─▶│  ChatDeepSeek(model=          │─▶│ ReceiptData   │
+  ...          ──┤  │   "deepseek-v4-flash-         │  │ (Pydantic)    │
+  receiptN.jpg ──┘  │   vision-exp")                │  │ - amount_paid │
+                   │   .with_structured_output(...)  │  │ - subtotal    │
+                   │   .batch(messages_list)        │  │ - discount    │
+                   └──────────────────────────────┘  │   _total      │
+                                                     └──────┬───────┘
+                                                            │
+                                          ┌─────────────────┘
+                                          ▼
+                                ┌──────────────────────────┐
+                                │       Aggregation         │
+                                │  Q1 = Σ amount_paid       │
+                                │  Q2 = Σ (sub + discount)  │
+                                └──────────┬───────────────┘
+                                           ▼
+                          {QUERY_1: "HK$1974.30",
+                           QUERY_2: "HK$2348.20"}
+```
+
+### Solution Description
+
+The hardest part is reliably separating *discounts* (which Query 2 must add
+back) from *rounding* (which it must ignore). The system prompt explicitly
+warns the model: "Do NOT confuse rounding with discounts. Rounding is a
+small adjustment (usually HK$0.01–HK$0.09) to make the total a round number."
+Combined with a Pydantic schema that names the fields in plain English
+(`amount_paid_after_rounding`, `subtotal`, `discount_total`), the model is
+nudged to read each receipt line-by-line instead of pattern-matching numbers.
+
+`temperature=0` keeps outputs deterministic across runs, and `max_retries=2`
+recovers from the occasional transient API failure. Because the schema is the
+same on every receipt, the chain generalizes to unseen receipt folders —
+nothing about filenames, currencies, or vendor layouts is hard-coded.
 
