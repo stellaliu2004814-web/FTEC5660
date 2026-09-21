@@ -56,22 +56,25 @@ My solution uses a two-stage LangChain pipeline:
 
 1. **Per-receipt extraction (parallel)** — For each receipt image, a multimodal
    message (system prompt + text instruction + base64-encoded image) is sent
-   to the vision-capable `deepseek-v4-flash-vision-exp` model wrapped with
-   `with_structured_output(ReceiptData)`. Each call returns a Pydantic object
-   with three fields:
+   to the vision-capable `deepseek-v4-flash-vision-exp` model. The system
+   prompt instructs the model to return a JSON object with four fields:
 
    - `amount_paid_after_rounding` — the final payment after rounding (e.g.,
      the OCTOPUS / CASH / VISA line)
    - `subtotal` — the SUBTOTAL line (after discounts, before rounding)
    - `discount_total` — the sum of all discount / promotion / coupon / member /
      app lines (as a positive number, excluding rounding)
+   - `discount_lines` — a list of every individual discount line found on the
+     receipt (description + amount), used as a self-check
 
-   All receipts are processed concurrently via `chain.batch()`.
+   The model is prompted to list every discount line it sees and verify that
+   `subtotal + discount_total` equals the sum of original item prices. All
+   receipts are processed concurrently via `chain.batch()`.
 
-2. **Aggregation** — The structured fields are summed across every receipt:
+2. **Aggregation** — The JSON fields are parsed and summed across every receipt:
 
-   - **Query 1** (total spent)            = Σ `amount_paid_after_rounding`
-   - **Query 2** (without discount)       = Σ (`subtotal` + `discount_total`)
+   - **Query 1** (total spent)            = sum of `amount_paid_after_rounding`
+   - **Query 2** (without discount)       = sum of (`subtotal` + `discount_total`)
 
    Results are returned as a dict keyed by the exact query strings, formatted
    as `"HK$xxxx.xx"` so the grader's regex picks up exactly one numeric value.
@@ -81,22 +84,21 @@ My solution uses a two-stage LangChain pipeline:
 ```
   receipt1.jpg ──┐
   receipt2.jpg ──┤  ┌──────────────────────────────┐  ┌──────────────┐
-  receipt3.jpg ──┼─▶│  ChatDeepSeek(model=          │─▶│ ReceiptData   │
-  ...          ──┤  │   "deepseek-v4-flash-         │  │ (Pydantic)    │
-  receiptN.jpg ──┘  │   vision-exp")                │  │ - amount_paid │
-                   │   .with_structured_output(...)  │  │ - subtotal    │
-                   │   .batch(messages_list)        │  │ - discount    │
-                   └──────────────────────────────┘  │   _total      │
-                                                     └──────┬───────┘
-                                                            │
-                                          ┌─────────────────┘
+  receipt3.jpg ──┼─▶│  ChatDeepSeek(model=          │─▶│ JSON response │
+  ...          ──┤  │   "deepseek-v4-flash-         │  │ { amount_paid,│
+  receiptN.jpg ──┘  │   vision-exp", temp=0         │  │   subtotal,   │
+                   │   .batch(messages_list)        │  │   discount,   │
+                   │   (multimodal: text + image)   │  │   lines[] }   │
+                   └──────────────────────────────┘  └──────┬───────┘
+                                                           │
+                                         ┌─────────────────┘
+                                         ▼
+                               ┌──────────────────────────┐
+                               │       Aggregation         │
+                               │  Q1 = Σ amount_paid       │
+                               │  Q2 = Σ (sub + discount)  │
+                               └──────────┬───────────────┘
                                           ▼
-                                ┌──────────────────────────┐
-                                │       Aggregation         │
-                                │  Q1 = Σ amount_paid       │
-                                │  Q2 = Σ (sub + discount)  │
-                                └──────────┬───────────────┘
-                                           ▼
                           {QUERY_1: "HK$1974.30",
                            QUERY_2: "HK$2348.20"}
 ```
@@ -104,15 +106,25 @@ My solution uses a two-stage LangChain pipeline:
 ### Solution Description
 
 The hardest part is reliably separating *discounts* (which Query 2 must add
-back) from *rounding* (which it must ignore). The system prompt explicitly
-warns the model: "Do NOT confuse rounding with discounts. Rounding is a
-small adjustment (usually HK$0.01–HK$0.09) to make the total a round number."
-Combined with a Pydantic schema that names the fields in plain English
-(`amount_paid_after_rounding`, `subtotal`, `discount_total`), the model is
-nudged to read each receipt line-by-line instead of pattern-matching numbers.
+back) from *rounding* (which it must ignore), and ensuring the model does not
+miss any discount lines on busy receipts. The system prompt explicitly warns
+the model: "ROUNDING is NOT a discount" and instructs it to "Read EVERY line
+on the receipt from top to bottom." The model is also asked to list every
+discount line in a `discount_lines` array and verify that the sum matches
+`discount_total` — this self-check significantly reduces missed discounts.
+
+The `deepseek-v4-flash-vision-exp` model has a "thinking mode" that is
+incompatible with `tool_choice` (function calling), so `with_structured_output`
+cannot be used. Instead, the prompt instructs the model to return a raw JSON
+object, which is parsed in `answer_queries()` with a regex fallback for
+markdown code fences.
 
 `temperature=0` keeps outputs deterministic across runs, and `max_retries=2`
-recovers from the occasional transient API failure. Because the schema is the
-same on every receipt, the chain generalizes to unseen receipt folders —
-nothing about filenames, currencies, or vendor layouts is hard-coded.
+recovers from occasional transient API failures. Nothing about filenames,
+currencies, or vendor layouts is hard-coded, so the chain generalizes to
+unseen receipt folders.
+
+**Public test results:**
+- Query 1 (total spent): HK$1974.30 — **correct**
+- Query 2 (without discount): HK$2348.20 — **correct**
 

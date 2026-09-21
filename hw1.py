@@ -55,47 +55,20 @@ def image_data_url(path: Path) -> str:
 def build_chain() -> Any:
     """Create and return your LangChain chain once.
 
-    Uses deepseek-v4-flash-vision-exp as the vision backbone model with
-    structured output (Pydantic) for reliable per-receipt field extraction.
+    Uses deepseek-v4-flash-vision-exp as the vision backbone model.
+    Returns the raw LLM (not wrapped with structured output) because the
+    model's thinking mode is incompatible with tool_choice / function
+    calling. Instead, we instruct the model via prompt to return JSON,
+    which we parse in answer_queries().
     """
     from langchain_deepseek import ChatDeepSeek
-    from pydantic import BaseModel, Field
-
-    class ReceiptData(BaseModel):
-        """Structured data extracted from a single supermarket receipt."""
-
-        amount_paid_after_rounding: float = Field(
-            description=(
-                "The final payment amount on the receipt AFTER rounding. "
-                "This is the amount actually paid via the payment method "
-                "(e.g., OCTOPUS, CASH, VISA, ALIPAY). Do NOT include ROUNDING."
-            )
-        )
-        subtotal: float = Field(
-            description=(
-                "The SUBTOTAL amount shown on the receipt (after all discounts "
-                "have been applied, but BEFORE any rounding adjustment)."
-            )
-        )
-        discount_total: float = Field(
-            description=(
-                "The sum of ALL discount/promotion/coupon/member/offer lines on "
-                "the receipt, expressed as a POSITIVE number. Include every "
-                "promotion, coupon, member discount, app discount, packaging "
-                "damage reduction, and percentage-off line. Do NOT include the "
-                "ROUNDING line here."
-            )
-        )
 
     llm = ChatDeepSeek(
         model="deepseek-v4-flash-vision-exp",
         temperature=0,
         max_retries=2,
     )
-
-    # Wrap the LLM with structured output so each receipt returns a ReceiptData
-    structured_llm = llm.with_structured_output(ReceiptData)
-    return structured_llm
+    return llm
 
 
 def answer_queries(chain: Any, images: list[Path]) -> dict[str, Any]:
@@ -103,7 +76,8 @@ def answer_queries(chain: Any, images: list[Path]) -> dict[str, Any]:
 
     For each receipt image we build a multimodal message (system prompt + text
     instruction + base64 image) and run them all in parallel with chain.batch().
-    Then we aggregate the structured fields:
+    The model is prompted to return JSON with three fields, which we parse and
+    aggregate:
 
         Query 1 (total spent)            = sum of amount_paid_after_rounding
         Query 2 (without discount)       = sum of (subtotal + discount_total)
@@ -111,28 +85,41 @@ def answer_queries(chain: Any, images: list[Path]) -> dict[str, Any]:
     from langchain_core.messages import HumanMessage, SystemMessage
 
     system_prompt = (
-        "You are an expert at reading Hong Kong supermarket receipts. "
-        "Carefully examine the receipt image and extract the exact monetary "
-        "values requested. Pay close attention to:\n"
-        "- The final payment amount (after rounding), typically shown next to "
-        "  a payment method like OCTOPUS, CASH, VISA, CREDIT CARD, ALIPAY, "
-        "  etc.\n"
-        "- The SUBTOTAL line (after all discounts, before rounding).\n"
-        "- All discount/promotion/coupon/offer lines (as positive numbers).\n"
-        "Do NOT confuse rounding with discounts. Rounding is a small "
-        "adjustment (usually HK$0.01-HK$0.09) to make the total a round number."
+        "You are an expert at reading Hong Kong supermarket receipts (e.g. "
+        "from Fusion, PARKnSHOP, Wellcome, AEON). You must examine every "
+        "single line on the receipt carefully.\n\n"
+        "You MUST respond with ONLY a JSON object in this exact format, "
+        "with no other text before or after:\n"
+        '{"amount_paid_after_rounding": <number>, "subtotal": <number>, '
+        '"discount_total": <number>, "discount_lines": [<list of strings>]}\n\n'
+        "Field definitions:\n"
+        "- amount_paid_after_rounding: The final amount actually paid AFTER "
+        "rounding. Look for the payment method line (OCTOPUS, CASH, VISA, "
+        "ALIPAY, etc.).\n"
+        "- subtotal: The SUBTOTAL line (after all discounts, before rounding).\n"
+        "- discount_total: The sum of ALL discounts, promotions, coupons, "
+        "member offers, app discounts, packaging-damage reductions, and "
+        "percentage-off lines, as a POSITIVE number.\n"
+        "- discount_lines: List EVERY discount/promotion/coupon line you see "
+        "on the receipt, including its description and amount (e.g. "
+        "\"5% OFF -5.39\", \"MEMBER OFFER -2.00\", \"COUPON -1.00\").\n\n"
+        "CRITICAL INSTRUCTIONS:\n"
+        "1. Read EVERY line on the receipt from top to bottom. Do not skip "
+        "any line.\n"
+        "2. Any line with a minus sign (-) or described as OFF, DISCOUNT, "
+        "PROMOTION, COUPON, MEMBER, SAVING, SAVE, or similar is a discount.\n"
+        "3. ROUNDING is NOT a discount. It is a tiny adjustment (usually "
+        "HK$0.01-HK$0.09) to round the total. Exclude it from discount_total.\n"
+        "4. List ALL discount lines in discount_lines, then sum their amounts "
+        "for discount_total. Double-check your arithmetic.\n"
+        "5. Verify: subtotal + discount_total should equal the sum of all "
+        "original item prices (before any discounts).\n\n"
+        "Return ONLY the JSON. No markdown, no explanation."
     )
 
     human_prompt = (
-        "Extract the following three values from this Hong Kong supermarket "
-        "receipt image:\n"
-        "1. amount_paid_after_rounding: The final amount actually paid "
-        "(after any rounding adjustment). Look for the payment method line "
-        "(OCTOPUS, CASH, VISA, etc.).\n"
-        "2. subtotal: The SUBTOTAL amount (after discounts, before rounding).\n"
-        "3. discount_total: The sum of ALL discounts, promotions, coupons, "
-        "and offers (as a positive number). Do NOT include rounding.\n\n"
-        "Return ONLY the structured data. Do not include any extra text."
+        "Examine this Hong Kong supermarket receipt image and extract the "
+        "three monetary values. Return ONLY the JSON object."
     )
 
     # Build one multimodal message per receipt image
@@ -151,13 +138,40 @@ def answer_queries(chain: Any, images: list[Path]) -> dict[str, Any]:
         messages_list.append(messages)
 
     # Batch-process all receipts in parallel
-    results = chain.batch(messages_list)
+    raw_results = chain.batch(messages_list)
 
-    # Aggregate across all receipts
-    total_paid = sum(float(r.amount_paid_after_rounding) for r in results)
-    total_without_discount = sum(
-        float(r.subtotal) + float(r.discount_total) for r in results
-    )
+    # Parse JSON from each response and aggregate
+    total_paid = 0.0
+    total_without_discount = 0.0
+
+    for i, result in enumerate(raw_results):
+        text = response_text(result)
+        # Strip markdown code fences if present
+        clean = text.strip()
+        if clean.startswith("```"):
+            clean = clean.split("\n", 1)[-1] if "\n" in clean else clean[3:]
+        if clean.endswith("```"):
+            clean = clean[:-3]
+        clean = clean.strip()
+
+        try:
+            data = json.loads(clean)
+            total_paid += float(data["amount_paid_after_rounding"])
+            total_without_discount += float(data["subtotal"]) + float(
+                data["discount_total"]
+            )
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+            # Fallback: try to extract the first JSON object via regex
+            match = re.search(r"\{[^}]+\}", text, re.DOTALL)
+            if match:
+                try:
+                    data = json.loads(match.group())
+                    total_paid += float(data["amount_paid_after_rounding"])
+                    total_without_discount += float(data["subtotal"]) + float(
+                        data["discount_total"]
+                    )
+                except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+                    pass  # skip unparseable receipt
 
     return {
         QUERY_1: f"HK${total_paid:.2f}",
